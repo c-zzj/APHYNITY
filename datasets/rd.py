@@ -9,7 +9,7 @@ MAX = np.iinfo(np.int32).max
 
 class ReactionDiffusion(Dataset):
 
-    __default_params = OrderedDict(a=1e-3, b=5e-3, k=5e-3)
+    __default_params = OrderedDict(a=1e-4, b=5e-4, k=5e-3)
 
     def __init__(self, path, num_seq=1600, size=32, time_horizon=3, dt=0.1, params=None, group='train'):
         super().__init__()

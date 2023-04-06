@@ -14,6 +14,7 @@ from torch.nn import init
 from torch import Tensor
 from torch.nn import Parameter
 from datetime import datetime
+import time
 
 class Logger(object):
     "Lumberjack class - duplicates sys.stdout to a log file and it's okay"
@@ -91,8 +92,9 @@ def make_basedir(root, timestamp=None, attempts=5):
             os.makedirs(basedir)
             return basedir
         except:
-            sleep(0.01)
-    raise FileExistsError(root)
+            time.sleep(0.01)
+    return basedir
+    #raise FileExistsError(root)
 
 ################################################################################
 # Adapted from http://
