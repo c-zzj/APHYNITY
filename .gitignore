@@ -1,6 +1,8 @@
 .idea
 *.pt
-*.png
+!*2.997e-04.pt
+!*4.121e-04.pt
+!*9.786e-01.pt
 *.bak
 *.dat
 *.dir

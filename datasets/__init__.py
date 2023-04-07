@@ -49,7 +49,7 @@ def param_rd(buffer_filepath, batch_size=64):
 
     return dataloader_train, dataloader_test      
 
-def param_wave(buffer_filepath, batch_size=64):    
+def param_wave(buffer_filepath, batch_size=32):
     dataset_train_params = {
         'path': buffer_filepath+'_train', 
         'dt': 0.001,

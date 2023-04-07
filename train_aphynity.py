@@ -6,6 +6,8 @@ from networks import *
 from forecasters import *
 from utils import init_weights
 from datasets import init_dataloaders
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
 
 __doc__ = '''Training APHYNITY.'''
 
@@ -123,9 +125,7 @@ def original_main():
     print('#' * 80)
     train_leads(args.dataset, model_phy_option=args.phy, model_aug_option=args.aug, path=path, device=args.device)
 
-if __name__ == '__main__':
-    #original_main()
-
+def plot_rd():
     if sys.version_info < (3, 7, 0):
         sys.stderr.write("You need python 3.7 or later to run this script.\n")
         sys.exit(1)
@@ -151,8 +151,7 @@ if __name__ == '__main__':
     model_aug = ConvNetEstimator(state_c=2, hidden=16)
     net = Forecaster(model_phy=model_phy, model_aug=model_aug, is_augmented=args.aug)
     net.load_state_dict(params2["model_state_dict"])
-    import matplotlib.pyplot as plt
-    from scipy.ndimage import gaussian_filter
+
     batch = test[0]
     for t in (9, 19, 29):
         states = batch["states"]
@@ -173,3 +172,83 @@ if __name__ == '__main__':
         Vpred = pred[0, 1, t].detach().numpy()
         plt.imshow(gaussian_filter(Vpred, sigma=2), interpolation='nearest')
         plt.savefig(f"Vpred_{(t + 1) / 10}.png")
+
+def plot_wave():
+    if sys.version_info < (3, 7, 0):
+        sys.stderr.write("You need python 3.7 or later to run this script.\n")
+        sys.exit(1)
+
+    args = cmdline_args()
+    path = os.path.join(args.root, args.dataset)
+    os.makedirs(path, exist_ok=True)
+
+    option_dict = {
+        'incomplete': 'Incomplete Param PDE',
+        'complete': 'Complete Param PDE',
+        'true': 'True PDE',
+        'none': 'No physics'
+    }
+    print('#' * 80)
+    print('#', option_dict[args.phy], 'is used in F_p')
+    print('#', 'F_a is', 'enabled' if args.aug else 'disabled')
+    print('#' * 80)
+    train, test = init_dataloaders(args.dataset, os.path.join(path, args.dataset))
+    params = torch.load("./exp/wave/model_9.786e-01.pt")
+
+    model_phy = DampedWaveParamPDE(is_complete=False, real_params=None)
+    model_aug = ConvNetEstimator(state_c=2, hidden=16)
+    net = Forecaster(model_phy=model_phy, model_aug=model_aug, is_augmented=args.aug)
+    net.load_state_dict(params["model_state_dict"])
+    for j, batch in enumerate(test):
+        states = batch["states"]
+        y0 = states[:, :, 0]
+        print(states.size())
+        i = 1
+        for t in (4, 14, 24):
+            w_target = states[i, 0, t].numpy()
+            # ax = plt.gca()
+            # ax.set_xlim([0, 35])
+            # ax.set_ylim([0, 35])
+            plt.imshow(gaussian_filter(w_target, sigma=0), interpolation='nearest')
+            plt.savefig(f"figures/wave/1/w_target_{t+1}.png")
+            dwdt_target = states[i, 1, t].numpy()
+            plt.imshow(gaussian_filter(dwdt_target, sigma=0), interpolation='nearest')
+            plt.savefig(f"figures/wave/1/dwdt_target_{t+1}.png")
+
+            pred = net(y0, batch['t'][0])
+
+            w_pred = pred[i, 0, t].detach().numpy()
+            plt.imshow(gaussian_filter(w_pred, sigma=0), interpolation='nearest')
+            plt.savefig(f"figures/wave/1/w_pred_{t+1}.png")
+            dwdt_pred = pred[i, 1, t].detach().numpy()
+            plt.imshow(gaussian_filter(dwdt_pred, sigma=0), interpolation='nearest')
+            plt.savefig(f"figures/wave/1/dwdt_pred_{t+1}.png")
+        break
+
+    # batch = test[0]
+    # for t in (9, 19, 29):
+    #     states = batch["states"]
+    #     y0 = states[:, :, 0]
+    #     print(states.size())
+        # Utarget = states[0, 0, t].numpy()
+        # plt.imshow(gaussian_filter(Utarget, sigma=2), interpolation='nearest')
+        # plt.savefig(f"Utarget_{(t + 1) / 10}.png")
+        # Vtarget = states[0, 1, t].numpy()
+        # plt.imshow(gaussian_filter(Vtarget, sigma=2), interpolation='nearest')
+        # plt.savefig(f"Vtarget_{(t + 1) / 10}.png")
+        #
+        # pred = net(y0, batch['t'][0])
+        # print(pred.size())
+        # Upred = pred[0, 0, t].detach().numpy()
+        # plt.imshow(gaussian_filter(Upred, sigma=2), interpolation='nearest')
+        # plt.savefig(f"Upred_{(t + 1) / 10}.png")
+        # Vpred = pred[0, 1, t].detach().numpy()
+        # plt.imshow(gaussian_filter(Vpred, sigma=2), interpolation='nearest')
+        # plt.savefig(f"Vpred_{(t + 1) / 10}.png")
+
+def plot_pendulum():
+    pass
+
+if __name__ == '__main__':
+    original_main()
+    #plot_wave()
