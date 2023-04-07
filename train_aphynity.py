@@ -7,6 +7,7 @@ from forecasters import *
 from utils import init_weights
 from datasets import init_dataloaders
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from scipy.ndimage import gaussian_filter
 
 __doc__ = '''Training APHYNITY.'''
@@ -225,30 +226,53 @@ def plot_wave():
             plt.savefig(f"figures/wave/1/dwdt_pred_{t+1}.png")
         break
 
-    # batch = test[0]
-    # for t in (9, 19, 29):
-    #     states = batch["states"]
-    #     y0 = states[:, :, 0]
-    #     print(states.size())
-        # Utarget = states[0, 0, t].numpy()
-        # plt.imshow(gaussian_filter(Utarget, sigma=2), interpolation='nearest')
-        # plt.savefig(f"Utarget_{(t + 1) / 10}.png")
-        # Vtarget = states[0, 1, t].numpy()
-        # plt.imshow(gaussian_filter(Vtarget, sigma=2), interpolation='nearest')
-        # plt.savefig(f"Vtarget_{(t + 1) / 10}.png")
-        #
-        # pred = net(y0, batch['t'][0])
-        # print(pred.size())
-        # Upred = pred[0, 0, t].detach().numpy()
-        # plt.imshow(gaussian_filter(Upred, sigma=2), interpolation='nearest')
-        # plt.savefig(f"Upred_{(t + 1) / 10}.png")
-        # Vpred = pred[0, 1, t].detach().numpy()
-        # plt.imshow(gaussian_filter(Vpred, sigma=2), interpolation='nearest')
-        # plt.savefig(f"Vpred_{(t + 1) / 10}.png")
-
 def plot_pendulum():
-    pass
+    if sys.version_info < (3, 7, 0):
+        sys.stderr.write("You need python 3.7 or later to run this script.\n")
+        sys.exit(1)
+
+    args = cmdline_args()
+    path = os.path.join(args.root, args.dataset)
+    os.makedirs(path, exist_ok=True)
+
+    option_dict = {
+        'incomplete': 'Incomplete Param PDE',
+        'complete': 'Complete Param PDE',
+        'true': 'True PDE',
+        'none': 'No physics'
+    }
+    print('#' * 80)
+    print('#', option_dict[args.phy], 'is used in F_p')
+    print('#', 'F_a is', 'enabled' if args.aug else 'disabled')
+    print('#' * 80)
+    train, test = init_dataloaders(args.dataset, os.path.join(path, args.dataset))
+    params = torch.load("./exp/pendulum/model_4.837e-05.pt")
+
+    model_phy = DampedPendulumParamPDE(is_complete=False, real_params=None)
+    model_aug = MLP(state_c=2, hidden=200)
+    net = Forecaster(model_phy=model_phy, model_aug=model_aug, is_augmented=args.aug)
+    net.load_state_dict(params["model_state_dict"])
+    for j, batch in enumerate(test):
+        states = batch["states"]
+        y0 = states[:, :, 0]
+        print(states.size())
+        i = 0
+        x = [k for k in range(40)]
+        theta_target = states[i, 0].numpy()
+        plt.plot(x, theta_target, c='r')
+
+        pred = net(y0, batch['t'][0])
+
+        theta_pred = pred[i, 0].detach().numpy()
+        plt.plot(x, theta_pred, c='b')
+
+        blue_patch = mpatches.Patch(color='b', label="pred")
+        red_patch = mpatches.Patch(color='r', label="target")
+        plt.legend(handles=[blue_patch, blue_patch, red_patch])
+
+        plt.savefig(f"figures/pendulum/1/theta.png")
+        break
 
 if __name__ == '__main__':
-    original_main()
-    #plot_wave()
+    #original_main()
+    plot_pendulum()

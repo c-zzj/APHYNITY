@@ -158,8 +158,11 @@ class LoopExperiment(BaseExperiment):
             max_i=len(self.train)
         )
         for name, value in metrics.items():
-            message += ' | {name}: {value:.2e}'.format(name=name, value=value)
-            
+            if name == "omega0_square":
+                message += ' | {name}: {value:.2e}'.format(name=name, value=value.item())
+            else:
+                message += ' | {name}: {value:.2e}'.format(name=name, value=value)
+
         print(message)
 
     def step(self, **kwargs):
