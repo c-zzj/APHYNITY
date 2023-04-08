@@ -146,33 +146,37 @@ def plot_rd():
     print('#', 'F_a is', 'enabled' if args.aug else 'disabled')
     print('#' * 80)
     train, test = init_dataloaders(args.dataset, os.path.join(path, args.dataset))
-    params = torch.load("./exp/rd1/model_2.997e-04.pt")
-    params2 = torch.load("./exp/rd/model_4.121e-04.pt")
+    params = torch.load("exp/rd_l2/model_2.997e-04.pt")
+    path = "figures/rd/l2/"
+    params = torch.load("./exp/rd_l2_small_params/model_4.121e-04.pt")
+    path = "figures/rd/l2_small_params/"
     model_phy = ReactionDiffusionParamPDE(dx=train.dataset.dx, is_complete=False, real_params=None)
     model_aug = ConvNetEstimator(state_c=2, hidden=16)
     net = Forecaster(model_phy=model_phy, model_aug=model_aug, is_augmented=args.aug)
-    net.load_state_dict(params2["model_state_dict"])
+    net.load_state_dict(params["model_state_dict"])
 
-    batch = test[0]
-    for t in (9, 19, 29):
-        states = batch["states"]
-        y0 = states[:, :, 0]
-        print(states.size())
-        Utarget = states[0, 0, t].numpy()
-        plt.imshow(gaussian_filter(Utarget, sigma=2), interpolation='nearest')
-        plt.savefig(f"Utarget_{(t + 1) / 10}.png")
-        Vtarget = states[0, 1, t].numpy()
-        plt.imshow(gaussian_filter(Vtarget, sigma=2), interpolation='nearest')
-        plt.savefig(f"Vtarget_{(t + 1) / 10}.png")
+    for j, batch in enumerate(test):
+        i = 0
+        for t in (9, 19, 29):
+            states = batch["states"]
+            y0 = states[:, :, 0]
+            print(states.size())
+            Utarget = states[i, 0, t].numpy()
+            plt.imshow(gaussian_filter(Utarget, sigma=2), interpolation='nearest')
+            plt.savefig(f"{path}Utarget_{(t + 1) // 10}.png")
+            Vtarget = states[i, 1, t].numpy()
+            plt.imshow(gaussian_filter(Vtarget, sigma=2), interpolation='nearest')
+            plt.savefig(f"{path}Vtarget_{(t + 1) // 10}.png")
 
-        pred = net(y0, batch['t'][0])
-        print(pred.size())
-        Upred = pred[0, 0, t].detach().numpy()
-        plt.imshow(gaussian_filter(Upred, sigma=2), interpolation='nearest')
-        plt.savefig(f"Upred_{(t + 1) / 10}.png")
-        Vpred = pred[0, 1, t].detach().numpy()
-        plt.imshow(gaussian_filter(Vpred, sigma=2), interpolation='nearest')
-        plt.savefig(f"Vpred_{(t + 1) / 10}.png")
+            pred = net(y0, batch['t'][0])
+            print(pred.size())
+            Upred = pred[i, 0, t].detach().numpy()
+            plt.imshow(gaussian_filter(Upred, sigma=2), interpolation='nearest')
+            plt.savefig(f"{path}Upred_{(t + 1) / 10}.png")
+            Vpred = pred[i, 1, t].detach().numpy()
+            plt.imshow(gaussian_filter(Vpred, sigma=2), interpolation='nearest')
+            plt.savefig(f"{path}Vpred_{(t + 1) / 10}.png")
+        break
 
 def plot_wave():
     if sys.version_info < (3, 7, 0):
@@ -268,11 +272,11 @@ def plot_pendulum():
 
         blue_patch = mpatches.Patch(color='b', label="pred")
         red_patch = mpatches.Patch(color='r', label="target")
-        plt.legend(handles=[blue_patch, blue_patch, red_patch])
+        plt.legend(handles=[blue_patch, red_patch])
 
         plt.savefig(f"figures/pendulum/1/theta.png")
         break
 
 if __name__ == '__main__':
     #original_main()
-    plot_pendulum()
+    plot_rd()

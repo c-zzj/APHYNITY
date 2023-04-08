@@ -199,6 +199,10 @@ class APHYNITYExperiment(LoopExperiment):
             loss_op = ((aug_deriv.norm(p=2, dim=1) / (states.norm(p=2, dim=1) + _EPSILON)) ** 2).mean()
         elif self.min_op == 'l2':
             loss_op = (aug_deriv.norm(p=2, dim=1) ** 2).mean()
+        elif self.min_op == "l1":
+            loss_op = aug_deriv.norm(p=1, dim=1).mean()
+        elif self.min_op == "inf":
+            loss_op = aug_deriv.norm(p="inf", dim=1).mean()
 
         if backward:
             loss_total = loss * self._lambda + loss_op
